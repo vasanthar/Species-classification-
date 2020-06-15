@@ -1,0 +1,100 @@
+---
+title: "Classifying iris species"
+author: "Vasantha Ramani"
+date: "15/06/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load the neccesary libraries
+```{r warning=F, message=F}
+library(ggplot2)
+library(ggpubr)
+library(dplyr)
+library(caret)
+library(randomForest)
+```
+
+### Iris dataset
+```{r}
+str(iris)
+head(iris)
+```
+
+There are 50 observations from each of iris species type sentosa, versicolor, and virginica. Lets explore the data set further. 
+
+## Exploratory data analysis
+Mean, max and min values of the petal properties of each flower species type are computed as follows:
+```{r}
+summary(iris[1:4])
+```
+
+
+```{r}
+g1_1 <- ggplot(iris, aes(x = Sepal.Length, color = Species)) + geom_histogram(fill = "white", alpha = 0.5, position = "identity")
+
+g1_2 <- ggplot(iris, aes(x = Sepal.Width, color = Species)) + geom_histogram(fill = "white", alpha = 0.5, position = "identity")
+
+g1_3 <- ggplot(iris, aes(x = Petal.Length, color = Species)) + geom_histogram(fill = "white", alpha = 0.5, position = "identity")
+
+g1_4 <- ggplot(iris, aes(x = Petal.Width, color = Species)) + geom_histogram(fill = "white", alpha = 0.5, position = "identity")
+
+figure <- ggarrange(g1_1, g1_2, g1_3, g1_4, ncol = 2, nrow = 2)
+figure
+
+g2 <- ggplot(iris, aes(x = Sepal.Length, y = Sepal.Width, color = Species)) + geom_point()
+
+g3 <- ggplot(iris, aes(x = Petal.Length, y = Petal.Width, color = Species)) + geom_point()
+
+figure2 <- ggarrange(g2, g3, ncol = 2, nrow = 1)
+figure2
+```
+
+From the histogram plots and the length vs width plot for sepal and petal, a trend can be observed, which can be used for identifying different species of iris flower. Foriinstance Virginia seens to have greater petal width and length compared to versicolor and sentosa species. 
+
+```{r}
+cor(iris$Sepal.Length, iris$Sepal.Width)
+cor(iris$Petal.Length, iris$Petal.Width)
+```
+Petal lenght and petal width have a high corelation value of 0.96. Now that we have performed some exploratory data analysis, lets fit a model for classifying differnt species of iris. 
+
+### Classification of iris species
+First step is splitting the data set into test and train data. For this we use a split ratio of 0.8. 
+```{r}
+set.seed(1234)
+trainIndex <- createDataPartition(iris$Species, p = 0.8, list = F, times = 1)
+train_iris <- iris[trainIndex, ]  # train dataset
+test_iris <- iris[-trainIndex, ]  # test dataset
+```
+
+
+KNN, random forest and decision trees model have been built using caret package on iris dataset. The accuracy on predicted test data is also reported. 
+```{r}
+# train control
+control <- trainControl(method='repeatedcv', number = 10, repeats = 3, search = 'grid')
+
+# decision trees
+model_decision <- train(Species~., data = train_iris, method = 'rpart', trControl = control)
+predict_dt <- predict(model_decision, test_iris)
+confusionMatrix(predict_dt, test_iris$Species)
+
+# view trees
+plot(model_decision$finalModel, uniform = T, main = 'Classification tree')
+text(model_decision$finalModel, use.n = T, all = T, cex = 0.8)
+
+# random forest
+modelrf <- randomForest(Species~., data = train_iris, trControl = control)
+predict_rf <- predict(modelrf, test_iris)
+confusionMatrix(predict_rf, test_iris$Species)
+
+
+# KNN
+model_knn <- train(Species ~., data = train_iris, method = 'knn', trControl = control)
+predict_knn <- predict(model_knn, test_iris)
+confusionMatrix(predict_knn, test_iris$Species)
+# best tuning parameter 'k'
+model_knn$bestTune
+```
