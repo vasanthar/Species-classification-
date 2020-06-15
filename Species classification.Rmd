@@ -2,7 +2,7 @@
 title: "Classifying iris species"
 author: "Vasantha Ramani"
 date: "15/06/2020"
-output: html_document
+output: md_document
 ---
 
 ```{r setup, include=FALSE}
